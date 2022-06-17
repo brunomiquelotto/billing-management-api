@@ -14,6 +14,11 @@ const bodyParser = require('body-parser')
 app.use(cors());
 app.use(bodyParser.json());
 
+app.get('/bills', async (req, res) => {
+    var bills = await Bill.findAll();
+    res.send(bills);
+});
+
 app.get('/bills/:year/:month', async (req, res) => {
     const { month, year } = req.params;
     var bills = await Bill.findAll({ 
