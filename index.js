@@ -60,8 +60,9 @@ app.delete('/bills/:id', async (req, res) => {
 });
 
 app.post('/bills/fixed/copy-from-last-month', async (req, res) => {
-    const month = moment().month().toString().padStart(2, '0');
-    const year = moment().year().toString();
+    const lastMonth = moment().add(-1, 'M');
+    const month = (lastMonth.month() + 1).toString().padStart(2, '0'); // month is 0-indexed.
+    const year = lastMonth.year().toString();
     var bills = await Bill.findAll({ 
         where: { 
             [Op.and]: [
@@ -72,7 +73,6 @@ app.post('/bills/fixed/copy-from-last-month', async (req, res) => {
         },
         raw: true
      });
-
 
      var tasks = bills.map(async bill => {
         delete bill.id;
