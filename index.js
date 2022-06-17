@@ -5,6 +5,7 @@ const sequelize = require('./database/manager');
 const { Op } = require('sequelize');
 const Bill = require('./models/bill');
 const cors = require('cors');
+const moment = require('moment');
 
 sequelize.sync({ alter: true });
 
@@ -51,8 +52,49 @@ app.put('/bills/:id', async (req, res) => {
 
 app.delete('/bills/:id', async (req, res) => {
     const bill = await Bill.findByPk(req.params.id);
+    if (!bill) {
+        return res.status(404).send();
+    }
     await bill.destroy();
     return res.status(204).send();
+});
+
+app.post('/bills/fixed/copy-from-last-month', async (req, res) => {
+    const month = moment().month().toString().padStart(2, '0');
+    const year = moment().year().toString();
+    var bills = await Bill.findAll({ 
+        where: { 
+            [Op.and]: [
+                sequelize.fn('strftime(\'%m\', dueDate) = ', month),
+                sequelize.fn('strftime(\'%Y\', dueDate) = ', year),
+                { isFixed: true }
+            ]
+        },
+        raw: true
+     });
+
+
+     var tasks = bills.map(async bill => {
+        delete bill.id;
+        delete bill.paymentDate;
+        bill.dueDate = moment(new Date(bill.dueDate.toString()).toISOString()).add(1, 'M').toDate();
+        return await Bill.create(bill);
+     });
+
+     var copied = await Promise.all(tasks);
+
+     return res.send(copied);
+});
+
+app.post('/bills/:id/pay', async (req, res) => {
+    const bill = await Bill.findByPk(req.params.id);
+
+    if (!bill) {
+        return res.status(404).send();
+    }
+    bill.paymentDate = moment().toDate();
+    await bill.save();
+    res.send(bill);
 });
 
 app.listen(port, () => console.log(`Hello world app listening on port ${port}!`));
