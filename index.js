@@ -4,11 +4,13 @@ const port = 3000;
 const sequelize = require('./database/manager');
 const { Op } = require('sequelize');
 const Bill = require('./models/bill');
+const cors = require('cors');
 
 sequelize.sync({ alter: true });
 
 const bodyParser = require('body-parser')
 
+app.use(cors());
 app.use(bodyParser.json());
 
 app.get('/bills/:year/:month', async (req, res) => {
